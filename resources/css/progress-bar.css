@@ -1,0 +1,133 @@
+.fpb-root {
+    display: flex;
+    min-width: 0;
+    width: 100%;
+    padding-inline: 0.75rem;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.fpb-label-row,
+.fpb-outside-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.fpb-label-wrap {
+    min-width: 0;
+}
+
+.fpb-label {
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: rgba(55, 65, 81, 1);
+}
+
+.fpb-track {
+    position: relative;
+    width: 100%;
+    min-width: 7.5rem;
+    flex: 1 1 auto;
+    overflow: hidden;
+    border-radius: 9999px;
+    background-color: rgba(229, 231, 235, 1);
+}
+
+.fpb-fill {
+    height: 100%;
+    border-radius: 9999px;
+    transition: width 300ms ease-out;
+}
+
+.fpb-inside {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-inline: 0.5rem;
+}
+
+.fpb-inside-text,
+.fpb-outside-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1;
+    font-weight: 500;
+}
+
+.fpb-inside-text {
+    color: rgba(17, 24, 39, 1);
+    text-shadow: 0 1px 1px rgba(255, 255, 255, 0.35);
+}
+
+.fpb-outside-row {
+    justify-content: flex-end;
+}
+
+.fpb-outside-text {
+    color: rgba(107, 114, 128, 1);
+}
+
+.fpb-entry-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.fpb-entry-label svg {
+    height: 1rem;
+    width: 1rem;
+    flex-shrink: 0;
+}
+
+.fpb-bar--sm {
+    height: 1.5rem;
+}
+
+.fpb-bar--md {
+    height: 2rem;
+}
+
+.fpb-bar--lg {
+    height: 2.5rem;
+}
+
+.fpb-text--sm {
+    font-size: 11px;
+}
+
+.fpb-text--md,
+.fpb-outside-text--sm,
+.fpb-outside-text--md {
+    font-size: 0.75rem;
+}
+
+.fpb-text--lg,
+.fpb-outside-text--lg {
+    font-size: 0.875rem;
+}
+
+html.dark .fpb-label {
+    color: rgba(229, 231, 235, 1);
+}
+
+html.dark .fpb-track {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+html.dark .fpb-inside-text {
+    color: rgba(255, 255, 255, 1);
+    text-shadow: none;
+}
+
+html.dark .fpb-outside-text {
+    color: rgba(156, 163, 175, 1);
+}
