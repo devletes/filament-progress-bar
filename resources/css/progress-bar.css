@@ -35,13 +35,13 @@
     min-width: 7.5rem;
     flex: 1 1 auto;
     overflow: hidden;
-    border-radius: 9999px;
+    border-radius: var(--fpb-radius, 9999px);
     background-color: rgba(229, 231, 235, 1);
 }
 
 .fpb-fill {
     height: 100%;
-    border-radius: 9999px;
+    border-radius: var(--fpb-radius, 9999px);
     transition: width 300ms ease-out;
 }
 

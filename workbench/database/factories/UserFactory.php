@@ -25,6 +25,7 @@ class UserFactory extends Factory
             'leave_total' => 20,
             'inventory_used' => fake()->numberBetween(0, 250),
             'inventory_total' => 250,
+            'demo_variant' => 'default',
             'email_verified_at' => now(),
             'remember_token' => fake()->regexify('[A-Za-z0-9]{10}'),
         ];

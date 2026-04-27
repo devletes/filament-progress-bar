@@ -11,14 +11,14 @@ trait HasProgressBar
 {
     protected int|float|Closure|null $maxValue = null;
 
-    /**
-     * @var array<string, int|float> | Closure | null
-     */
+    /** @var array<string, int|float>|array<int|float, string>|Closure|null */
     protected array|Closure|null $thresholds = null;
 
     protected int|float|Closure|null $warningThreshold = 70;
 
     protected int|float|Closure|null $dangerThreshold = 90;
+
+    protected string|Closure $thresholdDirection = 'ascending';
 
     protected string|Closure|null $successColor = null;
 
@@ -26,11 +26,17 @@ trait HasProgressBar
 
     protected string|Closure|null $dangerColor = null;
 
+    /** @var array<string, string|Closure>|Closure|null */
+    protected array|Closure|null $statusColors = null;
+
     protected string|Closure|null $successLabel = null;
 
     protected string|Closure|null $warningLabel = null;
 
     protected string|Closure|null $dangerLabel = null;
+
+    /** @var array<string, string|Closure>|Closure|null */
+    protected array|Closure|null $statusLabels = null;
 
     protected bool|Closure $isPercentageVisible = true;
 
@@ -40,6 +46,8 @@ trait HasProgressBar
 
     protected string|Closure $size = 'sm';
 
+    protected string|Closure|null $borderRadius = null;
+
     public function maxValue(int|float|Closure|null $value): static
     {
         $this->maxValue = $value;
@@ -47,9 +55,7 @@ trait HasProgressBar
         return $this;
     }
 
-    /**
-     * @param  array<string, int|float> | Closure | null  $thresholds
-     */
+    /** @param array<string, int|float>|array<int|float, string>|Closure|null $thresholds */
     public function thresholds(array|Closure|null $thresholds): static
     {
         $this->thresholds = $thresholds;
@@ -67,6 +73,13 @@ trait HasProgressBar
     public function dangerThreshold(int|float|Closure|null $threshold): static
     {
         $this->dangerThreshold = $threshold;
+
+        return $this;
+    }
+
+    public function thresholdDirection(string|Closure $direction): static
+    {
+        $this->thresholdDirection = $direction;
 
         return $this;
     }
@@ -92,6 +105,14 @@ trait HasProgressBar
         return $this;
     }
 
+    /** @param array<string, string|Closure>|Closure|null $colors */
+    public function statusColors(array|Closure|null $colors): static
+    {
+        $this->statusColors = $colors;
+
+        return $this;
+    }
+
     public function successLabel(string|Closure|null $label): static
     {
         $this->successLabel = $label;
@@ -109,6 +130,14 @@ trait HasProgressBar
     public function dangerLabel(string|Closure|null $label): static
     {
         $this->dangerLabel = $label;
+
+        return $this;
+    }
+
+    /** @param array<string, string|Closure>|Closure|null $labels */
+    public function statusLabels(array|Closure|null $labels): static
+    {
+        $this->statusLabels = $labels;
 
         return $this;
     }
@@ -155,13 +184,20 @@ trait HasProgressBar
         return $this;
     }
 
+    public function borderRadius(string|Closure|null $radius): static
+    {
+        $this->borderRadius = $radius;
+
+        return $this;
+    }
+
     public function resolveProgressBarData(): ProgressBarData
     {
         $state = $this->getState();
         $resolver = app(ProgressBarResolver::class);
         $parameters = $this->resolveEvaluationParameters($state);
         $maxValue = $this->evaluate($this->maxValue, $parameters);
-        $thresholds = $resolver->normalizeThresholds($this->resolveThresholdConfiguration($state));
+        $thresholds = $resolver->normalizeThresholdConfig($this->resolveThresholdConfiguration($state));
         $base = $resolver->resolveBaseData($state, $maxValue, $thresholds);
         $parameters = $this->resolveEvaluationParameters($state, $base);
 
@@ -169,21 +205,68 @@ trait HasProgressBar
             state: $state,
             maxValue: $maxValue,
             thresholds: $thresholds,
-            colors: [
-                'success' => (string) $this->evaluate($this->successColor ?? 'var(--primary-500)', $parameters),
-                'warning' => (string) $this->evaluate($this->warningColor ?? 'var(--warning-500)', $parameters),
-                'danger' => (string) $this->evaluate($this->dangerColor ?? 'var(--danger-500)', $parameters),
-            ],
-            labels: [
-                'success' => $this->evaluate($this->successLabel, $parameters),
-                'warning' => $this->evaluate($this->warningLabel, $parameters),
-                'danger' => $this->evaluate($this->dangerLabel, $parameters),
-            ],
+            colors: $this->resolveStatusColors($parameters),
+            labels: $this->resolveStatusLabels($parameters),
             showsPercentage: (bool) $this->evaluate($this->isPercentageVisible, $parameters),
             showsProgressValue: (bool) $this->evaluate($this->isProgressValueVisible, $parameters),
             textPosition: (string) $this->evaluate($this->textPosition, $parameters),
             size: (string) $this->evaluate($this->size, $parameters),
+            borderRadius: $this->evaluateNullableString($this->borderRadius, $parameters),
         );
+    }
+
+    /**
+     * @param  array<string, mixed>  $parameters
+     * @return array<string, mixed>
+     */
+    protected function resolveStatusColors(array $parameters): array
+    {
+        return $this->mergeStatusOverrides(
+            $this->statusColors,
+            [
+                'success' => $this->successColor ?? 'var(--primary-500)',
+                'warning' => $this->warningColor ?? 'var(--warning-500)',
+                'danger' => $this->dangerColor ?? 'var(--danger-500)',
+            ],
+            $parameters,
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $parameters
+     * @return array<string, mixed>
+     */
+    protected function resolveStatusLabels(array $parameters): array
+    {
+        return $this->mergeStatusOverrides(
+            $this->statusLabels,
+            ['success' => $this->successLabel, 'warning' => $this->warningLabel, 'danger' => $this->dangerLabel],
+            $parameters,
+        );
+    }
+
+    /**
+     * @param  array<string, string|Closure>|Closure|null  $map
+     * @param  array<string, string|Closure|null>  $namedSetters
+     * @param  array<string, mixed>  $parameters
+     * @return array<string, mixed>
+     */
+    protected function mergeStatusOverrides(array|Closure|null $map, array $namedSetters, array $parameters): array
+    {
+        $values = $this->evaluate($map, $parameters);
+        $values = is_array($values) ? $values : [];
+
+        foreach ($namedSetters as $status => $setter) {
+            if ($setter !== null && ! array_key_exists($status, $values)) {
+                $values[$status] = $setter;
+            }
+        }
+
+        foreach ($values as $status => $value) {
+            $values[$status] = $this->evaluate($value, $parameters);
+        }
+
+        return $values;
     }
 
     /**
@@ -193,11 +276,52 @@ trait HasProgressBar
     {
         $parameters = $this->resolveEvaluationParameters($state);
         $thresholds = $this->evaluate($this->thresholds, $parameters);
+        $direction = (string) $this->evaluate($this->thresholdDirection, $parameters);
+
+        if (is_array($thresholds) && $this->isThresholdMap($thresholds)) {
+            return [
+                'mode' => 'map',
+                'direction' => $direction,
+                'map' => $thresholds,
+            ];
+        }
+
+        $thresholds = is_array($thresholds) ? $thresholds : [];
 
         return [
+            'mode' => 'tiers',
+            'direction' => $direction,
             'warning' => $thresholds['warning'] ?? $this->evaluate($this->warningThreshold, $parameters),
             'danger' => $thresholds['danger'] ?? $this->evaluate($this->dangerThreshold, $parameters),
         ];
+    }
+
+    /**
+     * @param  array<mixed, mixed>  $thresholds
+     */
+    protected function isThresholdMap(array $thresholds): bool
+    {
+        if ($thresholds === []) {
+            return false;
+        }
+
+        foreach (array_keys($thresholds) as $key) {
+            if (! is_numeric($key)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @param  array<string, mixed>  $parameters
+     */
+    protected function evaluateNullableString(string|Closure|null $value, array $parameters): ?string
+    {
+        $resolved = $this->evaluate($value, $parameters);
+
+        return is_string($resolved) ? $resolved : null;
     }
 
     /**

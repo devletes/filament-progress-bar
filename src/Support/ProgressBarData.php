@@ -15,7 +15,30 @@ class ProgressBarData
         public readonly bool $showsProgressValue,
         public readonly string $textPosition,
         public readonly string $size,
+        public readonly ?string $borderRadius = null,
     ) {}
+
+    public function getBorderRadius(): ?string
+    {
+        return $this->borderRadius;
+    }
+
+    public function withoutLabel(): self
+    {
+        return new self(
+            current: $this->current,
+            total: $this->total,
+            percentage: $this->percentage,
+            status: $this->status,
+            color: $this->color,
+            label: null,
+            showsPercentage: $this->showsPercentage,
+            showsProgressValue: $this->showsProgressValue,
+            textPosition: $this->textPosition,
+            size: $this->size,
+            borderRadius: $this->borderRadius,
+        );
+    }
 
     public function getAriaValueNow(): int
     {

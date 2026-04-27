@@ -121,6 +121,210 @@ it('falls back to default colors and labels when invalid values are provided', f
         size: 'sm',
     );
 
-    expect($data->color)->toBe('var(--danger-500)')
+    expect($data->color)->toBe('var(--danger-500, var(--primary-500))')
         ->and($data->label)->toBeNull();
+});
+
+it('flips threshold comparison when direction is descending', function (): void {
+    $resolver = new ProgressBarResolver;
+
+    $low = $resolver->resolve(
+        state: 5,
+        maxValue: 100,
+        thresholds: ['direction' => 'descending', 'warning' => 30, 'danger' => 10],
+        colors: ['success' => 'green', 'warning' => 'yellow', 'danger' => 'red'],
+        labels: ['success' => null, 'warning' => null, 'danger' => null],
+        showsPercentage: true,
+        showsProgressValue: false,
+        textPosition: 'inside',
+        size: 'sm',
+    );
+
+    $mid = $resolver->resolve(
+        state: 25,
+        maxValue: 100,
+        thresholds: ['direction' => 'descending', 'warning' => 30, 'danger' => 10],
+        colors: ['success' => 'green', 'warning' => 'yellow', 'danger' => 'red'],
+        labels: ['success' => null, 'warning' => null, 'danger' => null],
+        showsPercentage: true,
+        showsProgressValue: false,
+        textPosition: 'inside',
+        size: 'sm',
+    );
+
+    $high = $resolver->resolve(
+        state: 80,
+        maxValue: 100,
+        thresholds: ['direction' => 'descending', 'warning' => 30, 'danger' => 10],
+        colors: ['success' => 'green', 'warning' => 'yellow', 'danger' => 'red'],
+        labels: ['success' => null, 'warning' => null, 'danger' => null],
+        showsPercentage: true,
+        showsProgressValue: false,
+        textPosition: 'inside',
+        size: 'sm',
+    );
+
+    expect($low->status)->toBe('danger')
+        ->and($mid->status)->toBe('warning')
+        ->and($high->status)->toBe('success');
+});
+
+it('clamps descending thresholds so danger never exceeds warning', function (): void {
+    $resolver = new ProgressBarResolver;
+
+    $config = $resolver->normalizeThresholdConfig([
+        'direction' => 'descending',
+        'warning' => 30,
+        'danger' => 50,
+    ]);
+
+    expect($config['warning'])->toBe(30)
+        ->and($config['danger'])->toBe(30);
+});
+
+it('resolves status from a threshold map with custom statuses', function (): void {
+    $resolver = new ProgressBarResolver;
+
+    $thresholds = [
+        'mode' => 'map',
+        'map' => [
+            80 => 'success',
+            60 => 'warning',
+            40 => 'info',
+            0 => 'danger',
+        ],
+    ];
+
+    $excellent = $resolver->resolve(
+        state: 90,
+        maxValue: 100,
+        thresholds: $thresholds,
+        colors: ['success' => 'green', 'warning' => 'orange', 'info' => 'blue', 'danger' => 'red'],
+        labels: ['info' => 'Watch'],
+        showsPercentage: false,
+        showsProgressValue: false,
+        textPosition: 'inside',
+        size: 'sm',
+    );
+
+    $info = $resolver->resolve(
+        state: 50,
+        maxValue: 100,
+        thresholds: $thresholds,
+        colors: ['success' => 'green', 'warning' => 'orange', 'info' => 'blue', 'danger' => 'red'],
+        labels: ['info' => 'Watch'],
+        showsPercentage: false,
+        showsProgressValue: false,
+        textPosition: 'inside',
+        size: 'sm',
+    );
+
+    $danger = $resolver->resolve(
+        state: 10,
+        maxValue: 100,
+        thresholds: $thresholds,
+        colors: ['success' => 'green', 'warning' => 'orange', 'info' => 'blue', 'danger' => 'red'],
+        labels: ['info' => 'Watch'],
+        showsPercentage: false,
+        showsProgressValue: false,
+        textPosition: 'inside',
+        size: 'sm',
+    );
+
+    expect($excellent->status)->toBe('success')
+        ->and($excellent->color)->toBe('green')
+        ->and($info->status)->toBe('info')
+        ->and($info->color)->toBe('blue')
+        ->and($info->label)->toBe('Watch')
+        ->and($danger->status)->toBe('danger')
+        ->and($danger->color)->toBe('red');
+});
+
+it('extends the lowest defined status down to 0 when the map omits a 0-floor', function (): void {
+    $resolver = new ProgressBarResolver;
+
+    $thresholds = [
+        'mode' => 'map',
+        'map' => [
+            80 => 'success',
+            60 => 'warning',
+            10 => 'info',
+        ],
+    ];
+
+    $belowGap = $resolver->resolve(
+        state: 5,
+        maxValue: 100,
+        thresholds: $thresholds,
+        colors: [],
+        labels: [],
+        showsPercentage: false,
+        showsProgressValue: false,
+        textPosition: 'inside',
+        size: 'sm',
+    );
+
+    $atGap = $resolver->resolve(
+        state: 10,
+        maxValue: 100,
+        thresholds: $thresholds,
+        colors: [],
+        labels: [],
+        showsPercentage: false,
+        showsProgressValue: false,
+        textPosition: 'inside',
+        size: 'sm',
+    );
+
+    expect($belowGap->status)->toBe('info')
+        ->and($atGap->status)->toBe('info');
+});
+
+it('derives a default color from the status name so Filament panel colors just work', function (): void {
+    $resolver = new ProgressBarResolver;
+
+    $data = $resolver->resolve(
+        state: 55,
+        maxValue: 100,
+        thresholds: ['mode' => 'map', 'map' => [50 => 'info', 0 => 'danger']],
+        colors: [],
+        labels: [],
+        showsPercentage: false,
+        showsProgressValue: false,
+        textPosition: 'inside',
+        size: 'sm',
+    );
+
+    expect($data->status)->toBe('info')
+        ->and($data->color)->toBe('var(--info-500, var(--primary-500))');
+});
+
+it('falls back to primary when the status name contains unsafe characters', function (): void {
+    $resolver = new ProgressBarResolver;
+
+    $data = $resolver->resolve(
+        state: 50,
+        maxValue: 100,
+        thresholds: ['mode' => 'map', 'map' => [0 => 'oops); color: red']],
+        colors: [],
+        labels: [],
+        showsPercentage: false,
+        showsProgressValue: false,
+        textPosition: 'inside',
+        size: 'sm',
+    );
+
+    expect($data->color)->toBe('var(--primary-500)');
+});
+
+it('passes through valid border radius values and rejects unsafe ones', function (): void {
+    $resolver = new ProgressBarResolver;
+
+    expect($resolver->normalizeBorderRadius('4px'))->toBe('4px')
+        ->and($resolver->normalizeBorderRadius('  0.5rem '))->toBe('0.5rem')
+        ->and($resolver->normalizeBorderRadius('calc(var(--r) * 2)'))->toBe('calc(var(--r) * 2)')
+        ->and($resolver->normalizeBorderRadius('4px; color: red'))->toBeNull()
+        ->and($resolver->normalizeBorderRadius('"><script>'))->toBeNull()
+        ->and($resolver->normalizeBorderRadius(null))->toBeNull()
+        ->and($resolver->normalizeBorderRadius(''))->toBeNull();
 });

@@ -6,21 +6,21 @@ class ProgressBarResolver
 {
     /**
      * @param  array<string, mixed>  $thresholds
-     * @return array{current: float, total: ?float, percentage: int, status: string, thresholds: array{warning: int, danger: int}}
+     * @return array{current: float, total: ?float, percentage: int, status: string, thresholds: array<string, mixed>}
      */
     public function resolveBaseData(mixed $state, mixed $maxValue, array $thresholds): array
     {
         $current = $this->resolveCurrent($state);
         $total = $this->resolveTotal($state, $maxValue);
         $percentage = $this->resolvePercentage($current, $total);
-        $thresholds = $this->normalizeThresholds($thresholds);
+        $config = $this->normalizeThresholdConfig($thresholds);
 
         return [
             'current' => $current,
             'total' => $total,
             'percentage' => $percentage,
-            'status' => $this->resolveStatus($percentage, $thresholds),
-            'thresholds' => $thresholds,
+            'status' => $this->resolveStatus($percentage, $config),
+            'thresholds' => $config,
         ];
     }
 
@@ -39,23 +39,23 @@ class ProgressBarResolver
         bool $showsProgressValue,
         string $textPosition,
         string $size,
+        ?string $borderRadius = null,
     ): ProgressBarData {
         $base = $this->resolveBaseData($state, $maxValue, $thresholds);
         $status = $base['status'];
-        $colors = $this->normalizeColors($colors);
-        $labels = $this->normalizeLabels($labels);
 
         return new ProgressBarData(
             current: $base['current'],
             total: $base['total'],
             percentage: $base['percentage'],
             status: $status,
-            color: $colors[$status],
-            label: $labels[$status] ?? null,
+            color: $this->resolveColorForStatus($status, $colors),
+            label: $this->resolveLabelForStatus($status, $labels),
             showsPercentage: $showsPercentage,
             showsProgressValue: $showsProgressValue,
             textPosition: $this->normalizeTextPosition($textPosition),
             size: $this->normalizeSize($size),
+            borderRadius: $this->normalizeBorderRadius($borderRadius),
         );
     }
 
@@ -66,25 +66,6 @@ class ProgressBarResolver
             'warning' => $warning,
             default => $success,
         };
-    }
-
-    /**
-     * @param  array<string, mixed>  $thresholds
-     * @return array{warning: int, danger: int}
-     */
-    public function normalizeThresholds(array $thresholds): array
-    {
-        $warning = $this->normalizeThreshold($thresholds['warning'] ?? null, 70);
-        $danger = $this->normalizeThreshold($thresholds['danger'] ?? null, 90);
-
-        if ($danger < $warning) {
-            $danger = $warning;
-        }
-
-        return [
-            'warning' => $warning,
-            'danger' => $danger,
-        ];
     }
 
     /**
@@ -114,19 +95,73 @@ class ProgressBarResolver
     }
 
     /**
-     * @param  array{warning: int, danger: int}  $thresholds
+     * @param  array<string, mixed>  $thresholds
+     * @return array{warning: int, danger: int}
      */
-    public function resolveStatus(int $percentage, array $thresholds): string
+    public function normalizeThresholds(array $thresholds): array
     {
-        if ($percentage >= $thresholds['danger']) {
-            return 'danger';
+        $config = $this->normalizeThresholdConfig($thresholds);
+
+        return [
+            'warning' => $config['warning'] ?? 70,
+            'danger' => $config['danger'] ?? 90,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $thresholds
+     * @return array<string, mixed>
+     */
+    public function normalizeThresholdConfig(array $thresholds): array
+    {
+        $direction = $this->normalizeDirection($thresholds['direction'] ?? 'ascending');
+        $mode = $thresholds['mode'] ?? 'tiers';
+
+        if ($mode === 'map') {
+            return [
+                'mode' => 'map',
+                'direction' => $direction,
+                'map' => $this->normalizeThresholdMap($thresholds['map'] ?? []),
+            ];
         }
 
-        if ($percentage >= $thresholds['warning']) {
-            return 'warning';
+        $defaultWarning = $direction === 'descending' ? 30 : 70;
+        $defaultDanger = $direction === 'descending' ? 10 : 90;
+
+        $warning = $this->normalizeThreshold($thresholds['warning'] ?? null, $defaultWarning);
+        $danger = $this->normalizeThreshold($thresholds['danger'] ?? null, $defaultDanger);
+
+        if ($direction === 'descending') {
+            if ($danger > $warning) {
+                $danger = $warning;
+            }
+        } elseif ($danger < $warning) {
+            $danger = $warning;
         }
 
-        return 'success';
+        return [
+            'mode' => 'tiers',
+            'direction' => $direction,
+            'warning' => $warning,
+            'danger' => $danger,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $config
+     */
+    public function resolveStatus(int $percentage, array $config): string
+    {
+        if (($config['mode'] ?? 'tiers') === 'map') {
+            return $this->resolveStatusFromMap($percentage, $config['map'] ?? []);
+        }
+
+        return $this->resolveStatusFromTiers(
+            $percentage,
+            (int) ($config['warning'] ?? 70),
+            (int) ($config['danger'] ?? 90),
+            (string) ($config['direction'] ?? 'ascending'),
+        );
     }
 
     public function resolvePercentage(float $current, ?float $total): int
@@ -184,6 +219,25 @@ class ProgressBarResolver
         return $this->clampPercentage((float) $threshold);
     }
 
+    public function normalizeBorderRadius(mixed $radius): ?string
+    {
+        if (! is_string($radius)) {
+            return null;
+        }
+
+        $radius = trim($radius);
+
+        if ($radius === '') {
+            return null;
+        }
+
+        if (preg_match('/[;<>"\'{}]/', $radius)) {
+            return null;
+        }
+
+        return $radius;
+    }
+
     public function resolveCurrent(mixed $state): float
     {
         if (is_numeric($state)) {
@@ -222,5 +276,109 @@ class ProgressBarResolver
         $maxValue = (float) $maxValue;
 
         return $maxValue > 0 ? $maxValue : null;
+    }
+
+    protected function normalizeDirection(mixed $direction): string
+    {
+        return $direction === 'descending' ? 'descending' : 'ascending';
+    }
+
+    /**
+     * @param  array<int|string, mixed>  $map
+     * @return array<int, string>
+     */
+    protected function normalizeThresholdMap(array $map): array
+    {
+        $normalized = [];
+
+        foreach ($map as $floor => $status) {
+            if (! is_numeric($floor) || ! is_string($status)) {
+                continue;
+            }
+
+            $status = trim($status);
+
+            if ($status === '') {
+                continue;
+            }
+
+            $normalized[$this->clampPercentage((float) $floor)] = $status;
+        }
+
+        krsort($normalized);
+
+        return $normalized;
+    }
+
+    /**
+     * @param  array<int, string>  $map
+     */
+    protected function resolveStatusFromMap(int $percentage, array $map): string
+    {
+        $lastStatus = 'success';
+
+        foreach ($map as $floor => $status) {
+            if ($percentage >= $floor) {
+                return $status;
+            }
+
+            $lastStatus = $status;
+        }
+
+        return $lastStatus;
+    }
+
+    protected function resolveStatusFromTiers(int $percentage, int $warning, int $danger, string $direction): string
+    {
+        if ($direction === 'descending') {
+            if ($percentage <= $danger) {
+                return 'danger';
+            }
+
+            if ($percentage <= $warning) {
+                return 'warning';
+            }
+
+            return 'success';
+        }
+
+        if ($percentage >= $danger) {
+            return 'danger';
+        }
+
+        if ($percentage >= $warning) {
+            return 'warning';
+        }
+
+        return 'success';
+    }
+
+    /**
+     * @param  array<string, mixed>  $colors
+     */
+    protected function resolveColorForStatus(string $status, array $colors): string
+    {
+        return $this->normalizeColor($colors[$status] ?? null, $this->defaultColorForStatus($status));
+    }
+
+    /**
+     * @param  array<string, mixed>  $labels
+     */
+    protected function resolveLabelForStatus(string $status, array $labels): ?string
+    {
+        return $this->normalizeLabel($labels[$status] ?? null);
+    }
+
+    protected function defaultColorForStatus(string $status): string
+    {
+        if ($status === 'success') {
+            return 'var(--primary-500)';
+        }
+
+        if (! preg_match('/^[a-zA-Z][a-zA-Z0-9_-]*$/', $status)) {
+            return 'var(--primary-500)';
+        }
+
+        return "var(--{$status}-500, var(--primary-500))";
     }
 }

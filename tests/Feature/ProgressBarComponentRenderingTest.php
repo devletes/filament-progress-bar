@@ -126,3 +126,83 @@ it('falls back to default values when invalid size or text position values are p
         ->and($html)->toContain('class="fpb-inside"')
         ->and($html)->not->toContain('fpb-bar--lg');
 });
+
+it('emits a custom border radius via the --fpb-radius css variable', function (): void {
+    $html = view('filament-progress-bar::tables.columns.progress-bar-column', [
+        'column' => TestProgressBarColumn::fake('usage', ['progress' => 5, 'total' => 10])
+            ->borderRadius('4px'),
+    ])->render();
+
+    expect($html)->toContain('--fpb-radius: 4px;');
+});
+
+it('omits the border radius style attribute when no radius is set', function (): void {
+    $html = view('filament-progress-bar::tables.columns.progress-bar-column', [
+        'column' => TestProgressBarColumn::fake('usage', ['progress' => 5, 'total' => 10]),
+    ])->render();
+
+    expect($html)->not->toContain('--fpb-radius');
+});
+
+it('strips unsafe border radius values to prevent style injection', function (): void {
+    $html = view('filament-progress-bar::tables.columns.progress-bar-column', [
+        'column' => TestProgressBarColumn::fake('usage', ['progress' => 5, 'total' => 10])
+            ->borderRadius('4px; color: red'),
+    ])->render();
+
+    expect($html)->not->toContain('--fpb-radius')
+        ->and($html)->not->toContain('color: red');
+});
+
+it('treats a low percentage as danger when threshold direction is descending', function (): void {
+    $html = view('filament-progress-bar::tables.columns.progress-bar-column', [
+        'column' => TestProgressBarColumn::fake('fuel', ['progress' => 5, 'total' => 100])
+            ->thresholdDirection('descending')
+            ->warningThreshold(30)
+            ->dangerThreshold(10)
+            ->dangerColor('rgb(220 38 38)'),
+    ])->render();
+
+    expect($html)->toContain('rgb(220 38 38)');
+});
+
+it('lets statusColors override the named color setter for the same status', function (): void {
+    $html = view('filament-progress-bar::tables.columns.progress-bar-column', [
+        'column' => TestProgressBarColumn::fake('usage', ['progress' => 95, 'total' => 100])
+            ->dangerColor('rgb(0 0 0)')
+            ->statusColors(['danger' => 'rgb(220 38 38)']),
+    ])->render();
+
+    expect($html)->toContain('rgb(220 38 38)')
+        ->and($html)->not->toContain('rgb(0 0 0)');
+});
+
+it('falls back to the named color setter when statusColors omits the status', function (): void {
+    $html = view('filament-progress-bar::tables.columns.progress-bar-column', [
+        'column' => TestProgressBarColumn::fake('usage', ['progress' => 95, 'total' => 100])
+            ->dangerColor('rgb(0 0 0)')
+            ->statusColors(['warning' => 'rgb(249 115 22)']),
+    ])->render();
+
+    expect($html)->toContain('rgb(0 0 0)');
+});
+
+it('uses a threshold map with custom statuses and statusColors', function (): void {
+    $html = view('filament-progress-bar::tables.columns.progress-bar-column', [
+        'column' => TestProgressBarColumn::fake('score', ['progress' => 55, 'total' => 100])
+            ->thresholds([
+                80 => 'success',
+                60 => 'warning',
+                40 => 'info',
+                0 => 'danger',
+            ])
+            ->statusColors([
+                'success' => 'rgb(16 185 129)',
+                'warning' => 'rgb(249 115 22)',
+                'info' => 'rgb(59 130 246)',
+                'danger' => 'rgb(220 38 38)',
+            ]),
+    ])->render();
+
+    expect($html)->toContain('rgb(59 130 246)');
+});

@@ -4,6 +4,8 @@
 
 @php
     $sizeClasses = $data->getSizeClasses();
+    $borderRadius = $data->getBorderRadius();
+    $trackStyle = $borderRadius !== null ? '--fpb-radius: '.$borderRadius.';' : null;
 @endphp
 
 <div class="fi-progress-bar fpb-root">
@@ -19,6 +21,7 @@
 
     <div
         class="fpb-track {{ $sizeClasses['bar'] }}"
+        @if ($trackStyle) style="{{ $trackStyle }}" @endif
         role="progressbar"
         aria-valuemin="0"
         aria-valuemax="{{ $data->getAriaValueMax() }}"

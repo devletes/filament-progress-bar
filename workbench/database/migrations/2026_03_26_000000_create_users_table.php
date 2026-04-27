@@ -15,6 +15,7 @@ return new class extends Migration
             $table->decimal('leave_total', 8, 2)->default(20);
             $table->unsignedInteger('inventory_used')->default(0);
             $table->unsignedInteger('inventory_total')->default(250);
+            $table->string('demo_variant')->default('default');
         });
     }
 
@@ -28,6 +29,7 @@ return new class extends Migration
                 'leave_total',
                 'inventory_used',
                 'inventory_total',
+                'demo_variant',
             ]);
         });
     }

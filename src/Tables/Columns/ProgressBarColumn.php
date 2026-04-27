@@ -16,19 +16,6 @@ class ProgressBarColumn extends Column
 
     public function resolveProgressBarData(): ProgressBarData
     {
-        $data = $this->resolveBaseProgressBarData();
-
-        return new ProgressBarData(
-            current: $data->current,
-            total: $data->total,
-            percentage: $data->percentage,
-            status: $data->status,
-            color: $data->color,
-            label: null,
-            showsPercentage: $data->showsPercentage,
-            showsProgressValue: $data->showsProgressValue,
-            textPosition: $data->textPosition,
-            size: $data->size,
-        );
+        return $this->resolveBaseProgressBarData()->withoutLabel();
     }
 }
