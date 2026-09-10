@@ -40,6 +40,9 @@ class ProgressBarResolver
         string $textPosition,
         string $size,
         ?string $borderRadius = null,
+        ?string $innerBorderRadius = null,
+        ?string $height = null,
+        ?string $trackColor = null,
     ): ProgressBarData {
         $base = $this->resolveBaseData($state, $maxValue, $thresholds);
         $status = $base['status'];
@@ -56,6 +59,9 @@ class ProgressBarResolver
             textPosition: $this->normalizeTextPosition($textPosition),
             size: $this->normalizeSize($size),
             borderRadius: $this->normalizeBorderRadius($borderRadius),
+            innerBorderRadius: $this->normalizeBorderRadius($innerBorderRadius),
+            height: $this->normalizeHeight($height),
+            trackColor: $this->normalizeTrackColor($trackColor),
         );
     }
 
@@ -75,7 +81,7 @@ class ProgressBarResolver
     public function normalizeColors(array $colors): array
     {
         return [
-            'success' => $this->normalizeColor($colors['success'] ?? null, 'var(--primary-500)'),
+            'success' => $this->normalizeColor($colors['success'] ?? null, 'var(--success-500)'),
             'warning' => $this->normalizeColor($colors['warning'] ?? null, 'var(--warning-500)'),
             'danger' => $this->normalizeColor($colors['danger'] ?? null, 'var(--danger-500)'),
         ];
@@ -185,7 +191,7 @@ class ProgressBarResolver
 
     public function normalizeSize(mixed $size): string
     {
-        return in_array($size, ['sm', 'md', 'lg'], true) ? $size : 'sm';
+        return in_array($size, ['xs', 'sm', 'md', 'lg'], true) ? $size : 'sm';
     }
 
     public function normalizeColor(mixed $color, string $default): string
@@ -221,21 +227,17 @@ class ProgressBarResolver
 
     public function normalizeBorderRadius(mixed $radius): ?string
     {
-        if (! is_string($radius)) {
-            return null;
-        }
+        return $this->normalizeCssValue($radius);
+    }
 
-        $radius = trim($radius);
+    public function normalizeHeight(mixed $height): ?string
+    {
+        return $this->normalizeCssValue($height);
+    }
 
-        if ($radius === '') {
-            return null;
-        }
-
-        if (preg_match('/[;<>"\'{}]/', $radius)) {
-            return null;
-        }
-
-        return $radius;
+    public function normalizeTrackColor(mixed $color): ?string
+    {
+        return $this->normalizeCssValue($color);
     }
 
     public function resolveCurrent(mixed $state): float
@@ -276,6 +278,25 @@ class ProgressBarResolver
         $maxValue = (float) $maxValue;
 
         return $maxValue > 0 ? $maxValue : null;
+    }
+
+    protected function normalizeCssValue(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $value = trim($value);
+
+        if ($value === '') {
+            return null;
+        }
+
+        if (preg_match('/[;<>"\'{}]/', $value)) {
+            return null;
+        }
+
+        return $value;
     }
 
     protected function normalizeDirection(mixed $direction): string
@@ -371,10 +392,6 @@ class ProgressBarResolver
 
     protected function defaultColorForStatus(string $status): string
     {
-        if ($status === 'success') {
-            return 'var(--primary-500)';
-        }
-
         if (! preg_match('/^[a-zA-Z][a-zA-Z0-9_-]*$/', $status)) {
             return 'var(--primary-500)';
         }

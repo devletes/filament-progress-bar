@@ -127,6 +127,32 @@ it('falls back to default values when invalid size or text position values are p
         ->and($html)->not->toContain('fpb-bar--lg');
 });
 
+it('hides the progress text on an xs bar because it is too short to stack text', function (): void {
+    $html = view('filament-progress-bar::tables.columns.progress-bar-column', [
+        'column' => TestProgressBarColumn::fake('usage', ['progress' => 12, 'total' => 20])
+            ->size('xs'),
+    ])->render();
+
+    expect($html)->toContain('fpb-bar--xs')
+        ->and($html)->not->toContain('class="fpb-inside"')
+        ->and($html)->not->toContain('class="fpb-outside-row"')
+        ->and($html)->not->toContain('>12 / 20 (60%)<')
+        // the value still reaches screen readers
+        ->and($html)->toContain('aria-valuetext="12 / 20 (60%)"');
+});
+
+it('shows the progress text on an xs bar once it is moved outside', function (): void {
+    $html = view('filament-progress-bar::tables.columns.progress-bar-column', [
+        'column' => TestProgressBarColumn::fake('usage', ['progress' => 12, 'total' => 20])
+            ->size('xs')
+            ->textPosition('outside'),
+    ])->render();
+
+    expect($html)->toContain('fpb-bar--xs')
+        ->and($html)->toContain('class="fpb-outside-text fpb-outside-text--xs"')
+        ->and($html)->toContain('12 / 20 (60%)');
+});
+
 it('emits a custom border radius via the --fpb-radius css variable', function (): void {
     $html = view('filament-progress-bar::tables.columns.progress-bar-column', [
         'column' => TestProgressBarColumn::fake('usage', ['progress' => 5, 'total' => 10])
@@ -152,6 +178,149 @@ it('strips unsafe border radius values to prevent style injection', function ():
 
     expect($html)->not->toContain('--fpb-radius')
         ->and($html)->not->toContain('color: red');
+});
+
+it('emits a custom height via the --fpb-height css variable', function (): void {
+    $html = view('filament-progress-bar::tables.columns.progress-bar-column', [
+        'column' => TestProgressBarColumn::fake('usage', ['progress' => 5, 'total' => 10])
+            ->height('3rem'),
+    ])->render();
+
+    expect($html)->toContain('--fpb-height: 3rem;');
+});
+
+it('omits the height style attribute when no height is set', function (): void {
+    $html = view('filament-progress-bar::tables.columns.progress-bar-column', [
+        'column' => TestProgressBarColumn::fake('usage', ['progress' => 5, 'total' => 10]),
+    ])->render();
+
+    expect($html)->not->toContain('--fpb-height');
+});
+
+it('strips unsafe height values to prevent style injection', function (): void {
+    $html = view('filament-progress-bar::tables.columns.progress-bar-column', [
+        'column' => TestProgressBarColumn::fake('usage', ['progress' => 5, 'total' => 10])
+            ->height('3rem; color: red'),
+    ])->render();
+
+    expect($html)->not->toContain('--fpb-height')
+        ->and($html)->not->toContain('color: red');
+});
+
+it('keeps the size text classes while overriding the height', function (): void {
+    $html = view('filament-progress-bar::tables.columns.progress-bar-column', [
+        'column' => TestProgressBarColumn::fake('usage', ['progress' => 5, 'total' => 10])
+            ->size('lg')
+            ->height('4rem'),
+    ])->render();
+
+    expect($html)->toContain('fpb-bar--lg')
+        ->and($html)->toContain('fpb-text--lg')
+        ->and($html)->toContain('--fpb-height: 4rem;');
+});
+
+it('emits both the border radius and height custom properties together', function (): void {
+    $html = view('filament-progress-bar::tables.columns.progress-bar-column', [
+        'column' => TestProgressBarColumn::fake('usage', ['progress' => 5, 'total' => 10])
+            ->borderRadius('4px')
+            ->height('3rem'),
+    ])->render();
+
+    expect($html)->toContain('--fpb-radius: 4px;')
+        ->and($html)->toContain('--fpb-height: 3rem;');
+});
+
+it('emits a custom inner border radius via the --fpb-inner-radius css variable', function (): void {
+    $html = view('filament-progress-bar::tables.columns.progress-bar-column', [
+        'column' => TestProgressBarColumn::fake('usage', ['progress' => 6, 'total' => 10])
+            ->innerBorderRadius('0'),
+    ])->render();
+
+    expect($html)->toContain('--fpb-inner-radius: 0;')
+        ->and($html)->not->toContain('--fpb-radius');
+});
+
+it('keeps the outer and inner border radii independent', function (): void {
+    $html = view('filament-progress-bar::tables.columns.progress-bar-column', [
+        'column' => TestProgressBarColumn::fake('usage', ['progress' => 6, 'total' => 10])
+            ->borderRadius('9999px')
+            ->innerBorderRadius('0'),
+    ])->render();
+
+    expect($html)->toContain('--fpb-radius: 9999px;')
+        ->and($html)->toContain('--fpb-inner-radius: 0;');
+});
+
+it('strips unsafe inner border radius values to prevent style injection', function (): void {
+    $html = view('filament-progress-bar::tables.columns.progress-bar-column', [
+        'column' => TestProgressBarColumn::fake('usage', ['progress' => 6, 'total' => 10])
+            ->innerBorderRadius('0; color: red'),
+    ])->render();
+
+    expect($html)->not->toContain('--fpb-inner-radius')
+        ->and($html)->not->toContain('color: red');
+});
+
+it('emits a custom track color via the --fpb-track-color css variable', function (): void {
+    $html = view('filament-progress-bar::tables.columns.progress-bar-column', [
+        'column' => TestProgressBarColumn::fake('usage', ['progress' => 5, 'total' => 10])
+            ->trackColor('var(--primary-100)'),
+    ])->render();
+
+    expect($html)->toContain('--fpb-track-color: var(--primary-100);');
+});
+
+it('omits the track color style attribute when no track color is set', function (): void {
+    $html = view('filament-progress-bar::tables.columns.progress-bar-column', [
+        'column' => TestProgressBarColumn::fake('usage', ['progress' => 5, 'total' => 10]),
+    ])->render();
+
+    expect($html)->not->toContain('--fpb-track-color');
+});
+
+it('strips unsafe track color values to prevent style injection', function (): void {
+    $html = view('filament-progress-bar::tables.columns.progress-bar-column', [
+        'column' => TestProgressBarColumn::fake('usage', ['progress' => 5, 'total' => 10])
+            ->trackColor('red; background-image: url(evil)'),
+    ])->render();
+
+    expect($html)->not->toContain('--fpb-track-color')
+        ->and($html)->not->toContain('background-image');
+});
+
+it('supports closure based track colors resolved from the record state', function (): void {
+    $html = view('filament-progress-bar::tables.columns.progress-bar-column', [
+        'column' => TestProgressBarColumn::fake('usage', ['progress' => 95, 'total' => 100])
+            ->trackColor(fn (string $status): string => $status === 'danger'
+                ? 'rgb(254 226 226)'
+                : 'rgb(229 231 235)'
+            ),
+    ])->render();
+
+    expect($html)->toContain('--fpb-track-color: rgb(254 226 226);');
+});
+
+it('emits every track custom property together in a single style attribute', function (): void {
+    $html = view('filament-progress-bar::tables.columns.progress-bar-column', [
+        'column' => TestProgressBarColumn::fake('usage', ['progress' => 5, 'total' => 10])
+            ->borderRadius('4px')
+            ->innerBorderRadius('0')
+            ->height('3rem')
+            ->trackColor('rgb(229 231 235)'),
+    ])->render();
+
+    expect($html)->toContain(
+        'style="--fpb-radius: 4px; --fpb-inner-radius: 0; --fpb-height: 3rem; --fpb-track-color: rgb(229 231 235);"'
+    );
+});
+
+it('renders a healthy bar in the Filament success color by default', function (): void {
+    $html = view('filament-progress-bar::tables.columns.progress-bar-column', [
+        'column' => TestProgressBarColumn::fake('usage', ['progress' => 30, 'total' => 100]),
+    ])->render();
+
+    expect($html)->toContain('background-color: var(--success-500);')
+        ->and($html)->not->toContain('var(--primary-500)');
 });
 
 it('treats a low percentage as danger when threshold direction is descending', function (): void {

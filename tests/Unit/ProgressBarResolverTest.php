@@ -299,6 +299,30 @@ it('derives a default color from the status name so Filament panel colors just w
         ->and($data->color)->toBe('var(--info-500, var(--primary-500))');
 });
 
+it('defaults the success status to the Filament success color rather than the primary one', function (): void {
+    $resolver = new ProgressBarResolver;
+
+    $data = $resolver->resolve(
+        state: 30,
+        maxValue: 100,
+        thresholds: [],
+        colors: [],
+        labels: [],
+        showsPercentage: true,
+        showsProgressValue: true,
+        textPosition: 'inside',
+        size: 'sm',
+    );
+
+    expect($data->status)->toBe('success')
+        ->and($data->color)->toBe('var(--success-500, var(--primary-500))')
+        ->and($resolver->normalizeColors([]))->toBe([
+            'success' => 'var(--success-500)',
+            'warning' => 'var(--warning-500)',
+            'danger' => 'var(--danger-500)',
+        ]);
+});
+
 it('falls back to primary when the status name contains unsafe characters', function (): void {
     $resolver = new ProgressBarResolver;
 
@@ -317,6 +341,15 @@ it('falls back to primary when the status name contains unsafe characters', func
     expect($data->color)->toBe('var(--primary-500)');
 });
 
+it('accepts xs alongside the other size presets', function (): void {
+    $resolver = new ProgressBarResolver;
+
+    expect($resolver->normalizeSize('xs'))->toBe('xs')
+        ->and($resolver->normalizeSize('sm'))->toBe('sm')
+        ->and($resolver->normalizeSize('lg'))->toBe('lg')
+        ->and($resolver->normalizeSize('xxs'))->toBe('sm');
+});
+
 it('passes through valid border radius values and rejects unsafe ones', function (): void {
     $resolver = new ProgressBarResolver;
 
@@ -327,4 +360,96 @@ it('passes through valid border radius values and rejects unsafe ones', function
         ->and($resolver->normalizeBorderRadius('"><script>'))->toBeNull()
         ->and($resolver->normalizeBorderRadius(null))->toBeNull()
         ->and($resolver->normalizeBorderRadius(''))->toBeNull();
+});
+
+it('passes through valid height values and rejects unsafe ones', function (): void {
+    $resolver = new ProgressBarResolver;
+
+    expect($resolver->normalizeHeight('3rem'))->toBe('3rem')
+        ->and($resolver->normalizeHeight('  48px '))->toBe('48px')
+        ->and($resolver->normalizeHeight('clamp(1rem, 4vw, 4rem)'))->toBe('clamp(1rem, 4vw, 4rem)')
+        ->and($resolver->normalizeHeight('3rem; color: red'))->toBeNull()
+        ->and($resolver->normalizeHeight('"><script>'))->toBeNull()
+        ->and($resolver->normalizeHeight(null))->toBeNull()
+        ->and($resolver->normalizeHeight(''))->toBeNull();
+});
+
+it('carries a normalized height through to the resolved data object', function (): void {
+    $resolver = new ProgressBarResolver;
+
+    $data = $resolver->resolve(
+        state: 50,
+        maxValue: 100,
+        thresholds: [],
+        colors: [],
+        labels: [],
+        showsPercentage: true,
+        showsProgressValue: true,
+        textPosition: 'inside',
+        size: 'sm',
+        height: '  3rem ',
+    );
+
+    expect($data->getHeight())->toBe('3rem')
+        ->and($data->getSizeClasses()['bar'])->toBe('fpb-bar--sm')
+        ->and($data->withoutLabel()->getHeight())->toBe('3rem');
+});
+
+it('passes through valid track colors and rejects unsafe ones', function (): void {
+    $resolver = new ProgressBarResolver;
+
+    expect($resolver->normalizeTrackColor('rgb(229 231 235)'))->toBe('rgb(229 231 235)')
+        ->and($resolver->normalizeTrackColor('  var(--primary-100) '))->toBe('var(--primary-100)')
+        ->and($resolver->normalizeTrackColor('rgb(0 0 0 / 8%)'))->toBe('rgb(0 0 0 / 8%)')
+        ->and($resolver->normalizeTrackColor('red; background-image: url(evil)'))->toBeNull()
+        ->and($resolver->normalizeTrackColor('"><script>'))->toBeNull()
+        ->and($resolver->normalizeTrackColor(null))->toBeNull()
+        ->and($resolver->normalizeTrackColor(''))->toBeNull();
+});
+
+it('keeps the inner border radius independent of the outer one', function (): void {
+    $resolver = new ProgressBarResolver;
+
+    $data = $resolver->resolve(
+        state: 60,
+        maxValue: 100,
+        thresholds: [],
+        colors: [],
+        labels: [],
+        showsPercentage: true,
+        showsProgressValue: true,
+        textPosition: 'inside',
+        size: 'sm',
+        borderRadius: '9999px',
+        innerBorderRadius: '0',
+        trackColor: 'var(--primary-100)',
+    );
+
+    expect($data->getBorderRadius())->toBe('9999px')
+        ->and($data->getInnerBorderRadius())->toBe('0')
+        ->and($data->getTrackColor())->toBe('var(--primary-100)')
+        ->and($data->getTrackCustomProperties())->toBe([
+            '--fpb-radius' => '9999px',
+            '--fpb-inner-radius' => '0',
+            '--fpb-track-color' => 'var(--primary-100)',
+        ]);
+});
+
+it('builds no track style when every custom property is unset', function (): void {
+    $resolver = new ProgressBarResolver;
+
+    $data = $resolver->resolve(
+        state: 60,
+        maxValue: 100,
+        thresholds: [],
+        colors: [],
+        labels: [],
+        showsPercentage: true,
+        showsProgressValue: true,
+        textPosition: 'inside',
+        size: 'sm',
+    );
+
+    expect($data->getTrackCustomProperties())->toBe([])
+        ->and($data->getTrackStyle())->toBeNull();
 });

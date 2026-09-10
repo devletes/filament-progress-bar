@@ -19,6 +19,9 @@ class DatabaseSeeder extends Seeder
             ["->thresholds([80 => 'success', ...])", 'emelie@example.com', 53, 12, 190, 'threshold_map'],
             ["->borderRadius('4px')", 'noor@example.com', 75, 11, 170, 'border_radius'],
             ['Salman Hijazi', 'salman@example.com', 82, 15, 5, 'infolist_demo'],
+            ["->height('2.75rem')", 'jonas@example.com', 62, 9, 200, 'custom_height'],
+            ["->innerBorderRadius('0')", 'lina@example.com', 58, 13, 145, 'inner_radius'],
+            ["->trackColor('var(--primary-100)')", 'omar@example.com', 84, 16, 210, 'track_color'],
         ];
 
         foreach ($variants as [$name, $email, $tasks, $leave, $inventory, $variant]) {

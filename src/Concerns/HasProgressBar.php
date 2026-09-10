@@ -48,6 +48,12 @@ trait HasProgressBar
 
     protected string|Closure|null $borderRadius = null;
 
+    protected string|Closure|null $innerBorderRadius = null;
+
+    protected string|Closure|null $height = null;
+
+    protected string|Closure|null $trackColor = null;
+
     public function maxValue(int|float|Closure|null $value): static
     {
         $this->maxValue = $value;
@@ -191,6 +197,27 @@ trait HasProgressBar
         return $this;
     }
 
+    public function innerBorderRadius(string|Closure|null $radius): static
+    {
+        $this->innerBorderRadius = $radius;
+
+        return $this;
+    }
+
+    public function height(string|Closure|null $height): static
+    {
+        $this->height = $height;
+
+        return $this;
+    }
+
+    public function trackColor(string|Closure|null $color): static
+    {
+        $this->trackColor = $color;
+
+        return $this;
+    }
+
     public function resolveProgressBarData(): ProgressBarData
     {
         $state = $this->getState();
@@ -212,6 +239,9 @@ trait HasProgressBar
             textPosition: (string) $this->evaluate($this->textPosition, $parameters),
             size: (string) $this->evaluate($this->size, $parameters),
             borderRadius: $this->evaluateNullableString($this->borderRadius, $parameters),
+            innerBorderRadius: $this->evaluateNullableString($this->innerBorderRadius, $parameters),
+            height: $this->evaluateNullableString($this->height, $parameters),
+            trackColor: $this->evaluateNullableString($this->trackColor, $parameters),
         );
     }
 
@@ -224,7 +254,7 @@ trait HasProgressBar
         return $this->mergeStatusOverrides(
             $this->statusColors,
             [
-                'success' => $this->successColor ?? 'var(--primary-500)',
+                'success' => $this->successColor ?? 'var(--success-500)',
                 'warning' => $this->warningColor ?? 'var(--warning-500)',
                 'danger' => $this->dangerColor ?? 'var(--danger-500)',
             ],

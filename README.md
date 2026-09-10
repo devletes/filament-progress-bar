@@ -11,7 +11,7 @@ Reusable progress bar components for Filament 5 tables and infolists.
 - Three-tier (success / warning / danger) coloring out of the box, with custom colors via CSS values
 - `ascending` and `descending` threshold directions for low-is-bad metrics (fuel, stock, battery)
 - Optional threshold *map* for any number of states with custom names
-- Three sizes, two text positions, custom border radius
+- Four sizes plus a custom bar height, two text positions, custom track color, and independent outer/inner border radii
 - Self-contained stylesheet, dark-mode aware
 - Proper `role="progressbar"` semantics
 
@@ -96,14 +96,28 @@ A missing or zero total resolves to `0%` rather than throwing.
 
 ### Size
 
-Method: `size('sm' | 'md' | 'lg')`
+Methods: `size('xs' | 'sm' | 'md' | 'lg')` / `height(string $value)`
 
-Controls the bar height and inside-text size. Defaults to `sm`. Invalid values fall back to the default.
+`size(...)` controls the bar height and inside-text size. Defaults to `sm`. Invalid values fall back to the default.
+
+> **`xs` is a bar-only size.** At `1rem` there is no room to stack text legibly on top of the fill, so an `xs` bar's text is **hidden** unless you move it below the bar with `textPosition('outside')`. Either way the value still reaches screen readers through `aria-valuetext`.
+
+To go outside the four presets, `height(...)` sets the bar height to **any valid CSS length** — pixels, rems, viewport units, custom properties, or `clamp()`/`calc()` expressions:
+
+```php
+->height('0.5rem')
+->height('48px')
+->height('clamp(1rem, 4vw, 4rem)')
+```
+
+`height(...)` overrides **only** the bar height — `size(...)` still drives the text sizing, so pair a custom height with the preset whose text reads best at that height (`sm` for slim bars, `lg` for tall ones). Pass `null` (or omit the call) to keep the height that `size(...)` resolves to (`1.5rem` / `2rem` / `2.5rem`).
 
 <table><tr>
-<td width="50%"><img src="docs/images/sizes_light.png" alt="Sizes (light)"></td>
-<td width="50%"><img src="docs/images/sizes_dark.png" alt="Sizes (dark)"></td>
+<td width="50%"><img src="docs/images/sizes_light.png" alt="Size and height (light)"></td>
+<td width="50%"><img src="docs/images/sizes_dark.png" alt="Size and height (dark)"></td>
 </tr></table>
+
+> Values containing `;`, `<`, `>`, `{`, `}`, or quotes are silently dropped to prevent inline-style injection. Stick to standard CSS length syntax.
 
 ### Text position
 
@@ -130,7 +144,7 @@ Toggle each portion of the display text independently. When both are visible the
 
 ### Border radius
 
-Method: `borderRadius(string $value)`
+Methods: `borderRadius(string $value)` / `innerBorderRadius(string $value)`
 
 Override the bar's corner radius with **any valid CSS length** — pixels, rems, percentages, custom properties, or `calc()` expressions:
 
@@ -141,6 +155,15 @@ Override the bar's corner radius with **any valid CSS length** — pixels, rems,
 ```
 
 Pass `null` (or omit the call) to keep the default pill shape (`9999px`).
+
+`borderRadius(...)` shapes the track *and* the fill together. `innerBorderRadius(...)` overrides the fill on its own, so the bar's outer silhouette and the shape of the progress edge can differ:
+
+```php
+->innerBorderRadius('0')                      // flat progress edge inside a pill track
+->borderRadius('4px')->innerBorderRadius('0')
+```
+
+The most common use is `'0'`: the track keeps its rounded outline (the fill is still clipped by it on the leading side), while the trailing edge of the fill ends in a flat vertical line instead of a rounded cap. Pass `null` (or omit the call) and the fill inherits whatever `borderRadius(...)` resolves to — the existing behavior.
 
 <table><tr>
 <td width="50%"><img src="docs/images/border_radius_light.png" alt="Border radius (light)"></td>
@@ -154,6 +177,8 @@ Pass `null` (or omit the call) to keep the default pill shape (`9999px`).
 The bar resolves a **status** from the percentage and renders a color for that status. Two threshold APIs are available — start with the simple one and reach for the map only when three states aren't enough.
 
 ### Three-state mode (default)
+
+Methods: `warningThreshold(int|float $percentage)` / `dangerThreshold(int|float $percentage)`
 
 `success` → `warning` → `danger`, with thresholds you can tune individually:
 
@@ -172,6 +197,8 @@ Defaults: `warning = 70`, `danger = 90`.
 
 ### Threshold direction
 
+Method: `thresholdDirection('ascending' | 'descending')`
+
 By default higher percentages escalate toward danger (CPU, memory, used quota). For metrics where **lower is worse** (fuel, stock, battery), flip the direction:
 
 ```php
@@ -189,6 +216,8 @@ In descending mode the package uses sane defaults (`warning = 30`, `danger = 10`
 </tr></table>
 
 ### Threshold map (advanced)
+
+Method: `thresholds([$floor => $status])`
 
 For more than three states, or for non-monotonic mappings, pass a map of `floor => status`. The status name can be anything you want:
 
@@ -211,7 +240,7 @@ Keys are interpreted as **percentage floors** — the highest matching floor win
 
 If you omit a `0` floor, the lowest-defined status extends down to `0`. For example, `[80 => 'success', 10 => 'info']` resolves `0–79` to `info` (no implicit `success` fallback below the lowest floor).
 
-The three legacy statuses — `success`, `warning`, `danger` — keep their package defaults (`var(--primary-500)`, `var(--warning-500)`, `var(--danger-500)`). Any other status name (e.g. `info`, `gray`, `secondary`, or a custom one registered via your panel's `->colors([...])`) auto-resolves to `var(--{status}-500)`. No extra configuration needed.
+The three legacy statuses — `success`, `warning`, `danger` — keep their package defaults (`var(--success-500)`, `var(--warning-500)`, `var(--danger-500)`). Any other status name (e.g. `info`, `gray`, `secondary`, or a custom one registered via your panel's `->colors([...])`) auto-resolves to `var(--{status}-500)`. No extra configuration needed.
 
 For one-off colors that don't map to a Filament color (e.g. you want a specific `'excellent'` status to be a particular shade of green), use `statusColors([...])`:
 
@@ -231,6 +260,8 @@ Likewise, custom labels for any status name go through `statusLabels([...])`:
 
 ### Colors
 
+Methods: `successColor(string $color)` / `warningColor(string $color)` / `dangerColor(string $color)` / `statusColors([$status => $color])` / `trackColor(string $color)`
+
 Three named setters cover the default statuses. Each accepts any CSS color value or a closure:
 
 ```php
@@ -239,11 +270,36 @@ Three named setters cover the default statuses. Each accepts any CSS color value
 ->dangerColor('var(--my-danger-color)')
 ```
 
-Defaults reference Filament's CSS variables (`var(--primary-500)`, `var(--warning-500)`, `var(--danger-500)`), so the bar inherits your panel's theme automatically.
+Defaults reference Filament's semantic CSS variables (`var(--success-500)`, `var(--warning-500)`, `var(--danger-500)`), so the bar inherits your panel's theme automatically. To render a healthy bar in your brand color instead, pass `->successColor('var(--primary-500)')`.
 
 For custom statuses (map mode), use `statusColors([...])`. When both `statusColors` and the named setters define the same status, the map wins — named setters fill in any keys the map omits.
 
+Those setters all color the **fill**. `trackColor(...)` colors the **track** behind it, replacing the neutral gray with any valid CSS color value — including a custom property, so the track can follow your theme:
+
+```php
+->trackColor('rgb(229 231 235)')
+->trackColor('var(--primary-100)')
+->trackColor('color-mix(in oklab, var(--primary-500) 15%, transparent)')
+```
+
+A custom track color wins in **both** light and dark mode, replacing the package defaults (`rgb(229 231 235)` and `rgb(255 255 255 / 0.1)`). To keep the track theme-aware, pass a CSS variable your panel theme redefines per mode rather than a fixed color:
+
+```css
+:root { --my-track: rgb(229 231 235); }
+html.dark { --my-track: rgb(255 255 255 / 0.1); }
+```
+
+```php
+->trackColor('var(--my-track)')
+```
+
+Pass `null` (or omit the call) to keep the dark-mode-aware default.
+
+> Values containing `;`, `<`, `>`, `{`, `}`, or quotes are silently dropped to prevent inline-style injection. Stick to standard CSS color syntax.
+
 ### Labels
+
+Methods: `successLabel(string $label)` / `warningLabel(string $label)` / `dangerLabel(string $label)` / `statusLabels([$status => $label])`
 
 Per-status labels are shown above the bar in **infolist entries only** (table columns intentionally skip them for compact rows). They accept a string or a closure receiving useful context:
 
@@ -368,11 +424,13 @@ ProgressBarEntry::make('inventory')
 ### Display
 | Method | Notes |
 |---|---|
-| `size('sm'\|'md'\|'lg')` | Default `sm` |
+| `size('xs'\|'sm'\|'md'\|'lg')` | Default `sm`; `xs` hides its text unless `textPosition('outside')` |
+| `height(string\|Closure\|null)` | Any CSS length; overrides the height from `size(...)` |
 | `textPosition('inside'\|'outside')` | Default `inside` |
 | `showPercentage(bool\|Closure)` / `hidePercentage(bool\|Closure)` | Default shown |
 | `showProgressValue(bool\|Closure)` / `hideProgressValue(bool\|Closure)` | Default shown |
 | `borderRadius(string\|Closure\|null)` | Any CSS length; default pill |
+| `innerBorderRadius(string\|Closure\|null)` | Any CSS length; shapes the fill only, defaults to `borderRadius(...)` |
 
 ### Thresholds
 | Method | Notes |
@@ -385,10 +443,11 @@ ProgressBarEntry::make('inventory')
 ### Colors
 | Method | Notes |
 |---|---|
-| `successColor(string\|Closure\|null)` | Default `var(--primary-500)` |
+| `successColor(string\|Closure\|null)` | Default `var(--success-500)` |
 | `warningColor(string\|Closure\|null)` | Default `var(--warning-500)` |
 | `dangerColor(string\|Closure\|null)` | Default `var(--danger-500)` |
 | `statusColors(array\|Closure\|null)` | Map of `status => color` for custom statuses |
+| `trackColor(string\|Closure\|null)` | Any CSS color; default neutral gray, dark-mode aware |
 
 ### Labels (infolist entries only)
 | Method | Notes |
@@ -403,14 +462,14 @@ The `ProgressBarEntry` extends Filament's `Entry` and supports the standard `lab
 
 ## Integration examples
 
-A `ProgressBarColumn` rendered inside a Filament resource table:
+A `ProgressBarColumn` rendered inside a Filament resource table, one row per option — sizes, text position, thresholds, border radius, custom height, a flat inner radius, and a tinted track:
 
 <table><tr>
 <td width="50%"><img src="docs/images/table_column_light.png" alt="Table integration (light)"></td>
 <td width="50%"><img src="docs/images/table_column_dark.png" alt="Table integration (dark)"></td>
 </tr></table>
 
-A `ProgressBarEntry` inside an infolist with icons, custom labels, and a descending-threshold "Stock remaining" bar:
+A `ProgressBarEntry` inside an infolist with icons, custom labels, a tall `height(...)` bar whose fill ends flat via `innerBorderRadius('0')`, a `trackColor(...)` tinted track, and a descending-threshold "Stock remaining" bar:
 
 <table><tr>
 <td width="50%"><img src="docs/images/infolist_entry_light.png" alt="Infolist integration (light)"></td>

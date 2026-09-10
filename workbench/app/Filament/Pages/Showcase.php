@@ -32,6 +32,9 @@ class Showcase extends Page
             'textPosition' => 'inside',
             'size' => 'sm',
             'borderRadius' => null,
+            'innerBorderRadius' => null,
+            'height' => null,
+            'trackColor' => null,
         ], $overrides);
 
         $make = static fn (array $args, ?string $caption = null): array => [
@@ -39,42 +42,50 @@ class Showcase extends Page
             'caption' => $caption,
         ];
 
+        $shape = static fn (array $args, ?string $caption = null): array => $make(
+            array_merge(['colors' => ['success' => 'var(--primary-500)']], $args),
+            $caption,
+        );
+
         return [
             'sizes' => [
-                $make(['size' => 'sm'], "->size('sm')"),
-                $make(['size' => 'md'], "->size('md')"),
-                $make(['size' => 'lg'], "->size('lg')"),
+                $shape(['size' => 'xs'], "->size('xs') — text hidden"),
+                $shape(['size' => 'sm'], "->size('sm')"),
+                $shape(['size' => 'md'], "->size('md')"),
+                $shape(['size' => 'lg'], "->size('lg')"),
+                $shape(['height' => '3rem'], "->height('3rem')"),
             ],
             'text-position' => [
-                $make(['textPosition' => 'inside'], "->textPosition('inside')"),
-                $make(['textPosition' => 'outside'], "->textPosition('outside')"),
+                $shape(['textPosition' => 'inside'], "->textPosition('inside')"),
+                $shape(['textPosition' => 'outside'], "->textPosition('outside')"),
             ],
             'visibility' => [
-                $make([], 'default (value + percentage)'),
-                $make(['showsPercentage' => false], '->hidePercentage()'),
-                $make(['showsProgressValue' => false], '->hideProgressValue()'),
-                $make(['showsPercentage' => false, 'showsProgressValue' => false], '->hidePercentage()->hideProgressValue()'),
+                $shape([], 'default (value + percentage)'),
+                $shape(['showsPercentage' => false], '->hidePercentage()'),
+                $shape(['showsProgressValue' => false], '->hideProgressValue()'),
+                $shape(['showsPercentage' => false, 'showsProgressValue' => false], '->hidePercentage()->hideProgressValue()'),
             ],
             'border-radius' => [
-                $make([], 'default (pill)'),
-                $make(['borderRadius' => '4px'], "->borderRadius('4px')"),
-                $make(['borderRadius' => '0'], "->borderRadius('0')"),
+                $shape([], 'default (pill)'),
+                $shape(['borderRadius' => '4px'], "->borderRadius('4px')"),
+                $shape(['borderRadius' => '0'], "->borderRadius('0')"),
+                $shape(['innerBorderRadius' => '0'], "->innerBorderRadius('0')"),
             ],
             'thresholds-default' => [
-                $make(['state' => ['progress' => 30, 'total' => 100]], '30% → success'),
-                $make(['state' => ['progress' => 75, 'total' => 100]], '75% → warning'),
-                $make(['state' => ['progress' => 95, 'total' => 100]], '95% → danger'),
+                $shape(['state' => ['progress' => 30, 'total' => 100]], '30% → success'),
+                $shape(['state' => ['progress' => 75, 'total' => 100]], '75% → warning'),
+                $shape(['state' => ['progress' => 95, 'total' => 100]], '95% → danger'),
             ],
             'thresholds-descending' => [
-                $make([
+                $shape([
                     'state' => ['progress' => 80, 'total' => 100],
                     'thresholds' => ['direction' => 'descending', 'warning' => 30, 'danger' => 10],
                 ], '80% → success (plenty left)'),
-                $make([
+                $shape([
                     'state' => ['progress' => 25, 'total' => 100],
                     'thresholds' => ['direction' => 'descending', 'warning' => 30, 'danger' => 10],
                 ], '25% → warning (running low)'),
-                $make([
+                $shape([
                     'state' => ['progress' => 5, 'total' => 100],
                     'thresholds' => ['direction' => 'descending', 'warning' => 30, 'danger' => 10],
                 ], '5% → danger (critical)'),
@@ -98,15 +109,15 @@ class Showcase extends Page
                 ], '20% → danger'),
             ],
             'recipe-battery' => [
-                $make([
+                $shape([
                     'state' => ['progress' => 82, 'total' => 100],
                     'thresholds' => ['direction' => 'descending', 'warning' => 30, 'danger' => 10],
                 ], 'Battery 82% — full'),
-                $make([
+                $shape([
                     'state' => ['progress' => 22, 'total' => 100],
                     'thresholds' => ['direction' => 'descending', 'warning' => 30, 'danger' => 10],
                 ], 'Battery 22% — low'),
-                $make([
+                $shape([
                     'state' => ['progress' => 6, 'total' => 100],
                     'thresholds' => ['direction' => 'descending', 'warning' => 30, 'danger' => 10],
                 ], 'Battery 6% — critical'),
@@ -130,34 +141,34 @@ class Showcase extends Page
                 ], 'Quality 22% — poor'),
             ],
             'recipe-squared' => [
-                $make([
+                $shape([
                     'state' => ['progress' => 35, 'total' => 100],
                     'size' => 'md',
                     'borderRadius' => '4px',
                 ], "->size('md')->borderRadius('4px')"),
-                $make([
+                $shape([
                     'state' => ['progress' => 65, 'total' => 100],
                     'size' => 'md',
                     'borderRadius' => '4px',
                 ], "->size('md')->borderRadius('4px')"),
-                $make([
+                $shape([
                     'state' => ['progress' => 92, 'total' => 100],
                     'size' => 'md',
                     'borderRadius' => '4px',
                 ], "->size('md')->borderRadius('4px')"),
             ],
             'recipe-compact' => [
-                $make([
+                $shape([
                     'state' => ['progress' => 30, 'total' => 100],
                     'showsPercentage' => false,
                     'showsProgressValue' => false,
                 ], '30% — color-only, no text'),
-                $make([
+                $shape([
                     'state' => ['progress' => 75, 'total' => 100],
                     'showsPercentage' => false,
                     'showsProgressValue' => false,
                 ], '75% — color-only, no text'),
-                $make([
+                $shape([
                     'state' => ['progress' => 95, 'total' => 100],
                     'showsPercentage' => false,
                     'showsProgressValue' => false,

@@ -36,6 +36,10 @@ class UserResource extends Resource
 
                 ProgressBarColumn::make('tasks_completed')
                     ->label('Tasks')
+                    // The package defaults `success` to var(--success-500). The workbench pins it
+                    // to the panel's brand color so these integration screenshots stay consistent
+                    // with the display demos on the Showcase page.
+                    ->successColor('var(--primary-500)')
                     ->maxValue(fn (User $record): int => (int) $record->tasks_total)
                     ->size(fn (User $record): string => match ($record->demo_variant) {
                         'medium_size' => 'md',
@@ -54,6 +58,18 @@ class UserResource extends Resource
                     ->dangerThreshold(fn (User $record): int => $record->demo_variant === 'descending' ? 10 : 90)
                     ->borderRadius(fn (User $record): ?string => $record->demo_variant === 'border_radius'
                         ? '4px'
+                        : null
+                    )
+                    ->innerBorderRadius(fn (User $record): ?string => $record->demo_variant === 'inner_radius'
+                        ? '0'
+                        : null
+                    )
+                    ->height(fn (User $record): ?string => $record->demo_variant === 'custom_height'
+                        ? '2.75rem'
+                        : null
+                    )
+                    ->trackColor(fn (User $record): ?string => $record->demo_variant === 'track_color'
+                        ? 'var(--primary-100)'
                         : null
                     )
                     ->thresholds(fn (User $record): ?array => $record->demo_variant === 'threshold_map'
@@ -82,14 +98,18 @@ class UserResource extends Resource
                             ->icon('heroicon-o-check-circle')
                             ->iconColor('primary')
                             ->maxValue(fn (User $record): int => (int) $record->tasks_total)
-                            ->warningThreshold(85),
+                            ->successColor('var(--primary-500)')
+                            ->warningThreshold(85)
+                            ->height('2.25rem')
+                            ->innerBorderRadius('0'),
                         ProgressBarEntry::make('leave_progress')
                             ->label('Leave balance')
                             ->icon('heroicon-o-calendar-days')
                             ->iconColor('warning')
                             ->getStateUsing(fn (): array => ['progress' => 15, 'total' => 20])
                             ->size('sm')
-                            ->textPosition('outside'),
+                            ->textPosition('outside')
+                            ->trackColor('var(--primary-100)'),
                         ProgressBarEntry::make('stock_remaining')
                             ->label('Stock remaining')
                             ->icon('heroicon-o-cube')

@@ -2,7 +2,7 @@
     $demos = $this->getDemos();
 
     $sectionTitles = [
-        'sizes' => 'Sizes',
+        'sizes' => 'Size & height',
         'text-position' => 'Text position',
         'visibility' => 'Show / hide value & percentage',
         'border-radius' => 'Border radius',

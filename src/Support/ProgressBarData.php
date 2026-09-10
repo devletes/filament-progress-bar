@@ -16,11 +16,53 @@ class ProgressBarData
         public readonly string $textPosition,
         public readonly string $size,
         public readonly ?string $borderRadius = null,
+        public readonly ?string $innerBorderRadius = null,
+        public readonly ?string $height = null,
+        public readonly ?string $trackColor = null,
     ) {}
 
     public function getBorderRadius(): ?string
     {
         return $this->borderRadius;
+    }
+
+    public function getInnerBorderRadius(): ?string
+    {
+        return $this->innerBorderRadius;
+    }
+
+    public function getHeight(): ?string
+    {
+        return $this->height;
+    }
+
+    public function getTrackColor(): ?string
+    {
+        return $this->trackColor;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function getTrackCustomProperties(): array
+    {
+        return array_filter([
+            '--fpb-radius' => $this->borderRadius,
+            '--fpb-inner-radius' => $this->innerBorderRadius,
+            '--fpb-height' => $this->height,
+            '--fpb-track-color' => $this->trackColor,
+        ], static fn (?string $value): bool => $value !== null);
+    }
+
+    public function getTrackStyle(): ?string
+    {
+        $declarations = [];
+
+        foreach ($this->getTrackCustomProperties() as $property => $value) {
+            $declarations[] = "{$property}: {$value};";
+        }
+
+        return $declarations === [] ? null : implode(' ', $declarations);
     }
 
     public function withoutLabel(): self
@@ -37,6 +79,9 @@ class ProgressBarData
             textPosition: $this->textPosition,
             size: $this->size,
             borderRadius: $this->borderRadius,
+            innerBorderRadius: $this->innerBorderRadius,
+            height: $this->height,
+            trackColor: $this->trackColor,
         );
     }
 
@@ -86,7 +131,17 @@ class ProgressBarData
 
     public function hasDisplayText(): bool
     {
-        return filled($this->getDisplayText());
+        return (! $this->hidesTextForSize()) && filled($this->getDisplayText());
+    }
+
+    /**
+     * An `xs` bar is too short to stack text legibly on top of the fill, so its text is
+     * suppressed unless it has been moved below the bar with `textPosition('outside')`.
+     * The value still reaches screen readers through `aria-valuetext`.
+     */
+    public function hidesTextForSize(): bool
+    {
+        return $this->size === 'xs' && $this->isProgressTextInsideBar();
     }
 
     public function isProgressTextInsideBar(): bool
@@ -100,6 +155,11 @@ class ProgressBarData
     public function getSizeClasses(): array
     {
         return match ($this->size) {
+            'xs' => [
+                'bar' => 'fpb-bar--xs',
+                'text' => 'fpb-text--xs',
+                'outsideText' => 'fpb-outside-text--xs',
+            ],
             'sm' => [
                 'bar' => 'fpb-bar--sm',
                 'text' => 'fpb-text--sm',

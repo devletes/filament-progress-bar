@@ -4,8 +4,7 @@
 
 @php
     $sizeClasses = $data->getSizeClasses();
-    $borderRadius = $data->getBorderRadius();
-    $trackStyle = $borderRadius !== null ? '--fpb-radius: '.$borderRadius.';' : null;
+    $trackStyle = $data->getTrackStyle();
 @endphp
 
 <div class="fi-progress-bar fpb-root">
